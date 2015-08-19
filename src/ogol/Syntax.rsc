@@ -48,7 +48,8 @@ Bonus:
 start syntax Program = Command*; 
 
 
-syntax FunDef = /* todo */;
+syntax FunDef = "to" FunId id VarId* varIds Command* "end";
+syntax FunCall = FunId Expr* ";";
 
 syntax Expr = var: VarId
 			| number: Number 
@@ -57,62 +58,45 @@ syntax Expr = var: VarId
 				| mul: Expr "*" Expr)
 			> left (add: Expr "+" Expr
 				| min: Expr "-" Expr)
-			> left ( Expr "\>=" Expr
-				| Expr "\<=" Expr
-				| Expr "!=" Expr
-				| Expr "=" Expr
-				| Expr "\>" Expr
-				| Expr "\<" Expr)
+			> gt: Expr "\>" Expr
+			| lt: Expr "\<" Expr
+			| gteq: Expr "\>=" Expr
+			| lteq: Expr "\<=" Expr
+			| eq: Expr "=" Expr
+			| neq: Expr "!=" Expr
 			> left ( and: Expr "&&" Expr 
 				| or: Expr "||" Expr);
-			
-  
-syntax ProcedureDef = To Name VarId* Command* End;
-syntax ProcedureCall = Name Expr*";";
+				
+lexical Number = "-"?[0-9]+("."[0-9]+)? | "-"?"."[0-9]+;
 
-lexical Name = ([a-z][a-zA-Z0-9]*) \ Reserved;
+syntax Boolean = "true" | "false";
 
-syntax Command = WhitespaceOrComment
-				| If Expr Block
-				| IfElse Expr Block Block
-				| While Expr Block
-				| Repeat Expr Block
-				| Forward Expr";"
-				| Back Expr";"
-				| Home";"
-				| Right Expr";"
-				| Left Expr";"
-				| Pendown";"
-				| Penup";"
-				| ProcedureDef
-				> ProcedureCall;
+syntax Command = ifStat: 	  "if" Expr Block
+				| ifElseStat: "ifelse" Expr Block Block
+				| whileStat:  "while" Expr Block
+				| repeatStat: "repeat" Expr Block
+				
+				| "forward" Expr ";" | "fd" Expr ";"
+				| "back" Expr ";"    | "bk" Expr ";"
+				| "right" Expr ";"   | "rt" Expr ";"
+				| "left" Expr ";"    | "lt" Expr ";"
+				| "home" ";"
+				
+				| "penup" ";" | "pu" ";" 
+				| "pendown" ";" | "pd" ";"
+				| funDef: FunDef
+				| funCall: FunCall;
 				
 syntax Block = "[" Command* "]";
 				
-keyword Reserved = If | IfElse | While | Repeat | Forward | Back | Right | Left
-				 | Pendown | Penup | To | Boolean | End | Home;
-keyword If = "if";
-keyword IfElse = "ifelse";
-keyword While = "while";
-keyword Repeat = "repeat";
-keyword Forward = "forward" | "fd";
-keyword Back = "back" | "bk";
-keyword Right = "right" | "rt";
-keyword Left = "left" | "lt";
-keyword Pendown = "pendown" | "pd";
-keyword Penup = "penup" | "pu";
-keyword To = "to";
-keyword Boolean = "true" | "false";
-keyword End = "end";
-keyword Home = "home";
+keyword Reserved = "if" | "ifelse" | "while" | "repeat" | "forward" | "fd" | "back" | "bk" |
+				   "right" | "rt" | "left" | "lt" | "pendown" | "pd" | "penup" | "pu" | 
+				   "to" | "true" | "false" | "end" | "home";
 
-lexical VarId
-  = ":" [a-zA-Z][a-zA-Z0-9]* !>> [a-zA-Z0-9];
+lexical VarId = ":" ([a-zA-Z][a-zA-Z0-9]*) \ Reserved !>> [a-zA-Z0-9];
   
-lexical Number = "-"?[0-9]+("."[0-9]+)? | "-"?"."[0-9]+;
+lexical FunId =     ([a-zA-Z][a-zA-Z0-9]*) \ Reserved !>> [a-zA-Z0-9];
   
-lexical FunId
-  = [a-zA-Z][a-zA-Z0-9]* !>> [a-zA-Z0-9];
 
 layout Standard 
   = WhitespaceOrComment* !>> [\ \t\n\r] !>> "--";
@@ -137,7 +121,7 @@ bool testParse(str txt){
 }
 
 bool testParseLoc(loc location){
- try  return /amb(_) !:= parse(#Program, location);
+ try  return /amb(_) !:= parse(#start[Program], location);
  catch: return false;
 }
 
@@ -193,5 +177,11 @@ public void render(str txt){
 }
 
 public void render(loc location){
-	render(visParsetree(parse(#Program, location)));
+	render(visParsetree(parse(#start[Program], location)));
 }
+
+public Program parseP(loc location){
+	return parse(#start[Program], location);
+}
+
+
