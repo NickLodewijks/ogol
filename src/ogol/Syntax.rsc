@@ -4,6 +4,7 @@ import ParseTree;
 import vis::Figure;
 import vis::ParseTree;
 import vis::Render;
+import ogol::Desugar;
 
 /*
 
@@ -45,10 +46,10 @@ Bonus:
 
 */
 
-start syntax Program = Command*; 
+start syntax Program = Command* cmds; 
 
 
-syntax FunDef = "to" FunId id VarId* varIds Command* "end";
+syntax FunDef = "to" FunId id VarId* varIds Command* cmds "end";
 syntax FunCall = FunId Expr* ";";
 
 syntax Expr = var: VarId
@@ -67,7 +68,7 @@ syntax Expr = var: VarId
 			> left ( and: Expr "&&" Expr 
 				| or: Expr "||" Expr);
 				
-lexical Number = "-"?[0-9]+("."[0-9]+)? | "-"?"."[0-9]+;
+lexical Number = "-"? ([0-9]* ".")? [0-9]+ !>> [0-9];
 
 syntax Boolean = "true" | "false";
 
@@ -177,7 +178,7 @@ public void render(str txt){
 }
 
 public void render(loc location){
-	render(visParsetree(parse(#start[Program], location)));
+	render(visParsetree(desugar(parse(#Program, location))));
 }
 
 public Program parseP(loc location){
