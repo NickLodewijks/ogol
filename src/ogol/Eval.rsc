@@ -35,6 +35,10 @@ alias Turtle = tuple[int dir, bool pendown, Point position];
 
 alias State = tuple[Turtle turtle, Canvas canvas];
 
+Canvas evald(Program p){
+	return eval(desugar(p));
+}
+
 // Top-level eval function
 Canvas eval(p:(Program)`<Command* cmds>`){
 	funenv = collectFunDefs(p);
@@ -177,33 +181,6 @@ State eval((Command)`pendown;`,FunEnv fenv, VarEnv venv, State state){
 // Command funDef
 State eval((Command)`to <FunId id> <VarId* varIds> <Command* cmds> end`,
 		FunEnv fenv, VarEnv venv, State state){
-		
-	for(varId <- varIds){
-		if(varId notin venv){
-			return state;
-		}
-	}
-		
-	for(c <- cmds){
-		state = eval(c, fenv, venv, state);
-	}
-	
-	return state;
-}
-
-State eval((FunDef)`to <FunId id> <VarId* varIds> <Command* cmds> end`,
-		FunEnv fenv, VarEnv venv, State state){
-	
-	for(varId <- varIds){
-		if(varId notin venv){
-			return state;
-		}
-	}
-	
-	for(c <- cmds){
-		state = eval(c, fenv, venv, state);
-	}
-	
 	return state;
 }
 
@@ -218,8 +195,13 @@ State eval((Command)`<FunId id> <Expr* es>;`,
 	//	println("VarId: <varId>, value: <eval(map1[varId], venv)>");
 	}
 	
+	for(c <- fenv[id].cmds){
+		println(c);
+		state = eval(c, fenv, venv, state);
+	}
 	
-	return eval(fenv[id], fenv, venv, state);
+	
+	return state;
 }
 
 Program desugar(Program p){
@@ -244,7 +226,7 @@ Program desugar(Program p){
  		=>(Expr)`<Expr rhs> \>= <Expr lhs>`
  		
  	case (Command)`if <Expr c> <Block b>`
- 		=> (Command)`ifelse <Expr c> <Block b> []`
+ 		=> (Command)`ifelse <Expr c> <Block b> [ ]`
  }
 }
 
@@ -429,8 +411,14 @@ default Value eval(Expr e, VarEnv _){
 }
 
 public void octagonJs(){
-	compileCanvas(eval(desugar(parse(#Program, |project://Ogol/input/octagon.ogol|))), |project://Ogol/input/ogol.js|);
+	compileCanvas(evald(parse(#Program, |project://Ogol/input/octagon.ogol|)), |project://Ogol/input/ogol.js|);
 }
+
 public void dashedJs(){
-	compileCanvas(eval(desugar(parse(#Program, |project://Ogol/input/dashed.ogol|))), |project://Ogol/input/ogol.js|);
+	compileCanvas(evald(parse(#Program, |project://Ogol/input/dashed.ogol|)), |project://Ogol/input/ogol.js|);
 }
+
+public void treesJs(){
+	compileCanvas(evald(parse(#start[Program], |project://Ogol/input/trees.ogol|).top), |project://Ogol/input/ogol.js|);
+}
+
