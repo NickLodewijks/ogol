@@ -36,6 +36,7 @@ alias Turtle = tuple[int dir, bool pendown, Point position];
 
 alias State = tuple[Turtle turtle, Canvas canvas];
 
+// desugar and eval program p
 Canvas evald(Program p){
 	return eval(desugar(p));
 }
@@ -47,7 +48,6 @@ Canvas eval(p:(Program)`<Command* cmds>`){
 	State state = <<0, false, <0,0>>, []>;
 	
 	for(c <- cmds){
-	//	println(c);
 		state = eval(c, funenv, varenv, state);
 	}
 	
@@ -69,9 +69,9 @@ State eval((Block)`[<Command* cmds>]`,
 }
 
 // Command ifElseStat (ifStat is rewritten to ifElseStat)
-State eval(c:(Command)`ifelse <Expr c> <Block b1> <Block b2>`, 
+State eval((Command)`ifelse <Expr c> <Block b1> <Block b2>`, 
 		FunEnv fenv, VarEnv venv, State state){
-	if(eval(c, venv)){
+	if(eval(c, venv).b){
 		return eval(b1, fenv, venv, state);
 	} else {
 		return eval(b2, fenv, venv, state);
@@ -82,7 +82,9 @@ State eval(c:(Command)`ifelse <Expr c> <Block b1> <Block b2>`,
 State eval((Command)`while <Expr c> <Block b>`, 
 		FunEnv fenv, VarEnv venv, State state){
 		
-	while(eval(c, venv)){
+	// Not working, eval(c, venv) will always give the same result
+	// due to Ogol not having side-effects.
+	while(eval(c, venv).b){
 		state = eval(b, fenv, venv, state);
 	}
 	
@@ -163,7 +165,6 @@ State eval((Command)`left <Expr e>;`,
 // Command home
 State eval((Command)`home;`,FunEnv fenv, VarEnv venv, State state){
 	state.turtle.position = <0,0>;
-	
 	return state;
 }
 
@@ -189,15 +190,11 @@ State eval((Command)`to <FunId id> <VarId* varIds> <Command* cmds> end`,
 State eval((Command)`<FunId id> <Expr* es>;`, 
 		FunEnv fenv, VarEnv venv, State state){
 	
-	map[VarId, Expr] map1 = (varId : expr | varId <- fenv[id].varIds, expr <- es);
-	
-	for(varId <- fenv[id].varIds){
-		venv[varId] = eval(map1[varId], venv);
-	//	println("VarId: <varId>, value: <eval(map1[varId], venv)>");
+	for(varId <- fenv[id].varIds, expr <- es){
+		venv[varId] = eval(expr, venv);
 	}
 	
 	for(c <- fenv[id].cmds){
-		println(c);
 		state = eval(c, fenv, venv, state);
 	}
 	
@@ -385,15 +382,48 @@ default Value eval(Expr e, VarEnv _){
 	throw "Cannot eval: <e>"; 
 }
 
-public void octagonJs(){
-	compileCanvas(evald(parse(#Program, |project://Ogol/input/octagon.ogol|)), |project://Ogol/input/ogol.js|);
+void evalAndCompileCanvas(loc file){
+	compileCanvas(evald(parse(#start[Program], file).top), |project://Ogol/input/ogol.js|);
 }
 
 public void dashedJs(){
-	compileCanvas(evald(parse(#Program, |project://Ogol/input/dashed.ogol|)), |project://Ogol/input/ogol.js|);
+	evalAndCompileCanvas(|project://Ogol/input/dashed.ogol|);
+}
+
+test bool testEvalDashed(){
+	try evald(parse(#start[Program], |project://Ogol/input/dashed.ogol|).top);
+	  catch: return false;
+	return true;
+}
+
+public void octagonJs(){
+	evalAndCompileCanvas(|project://Ogol/input/octagon.ogol|);
+}
+
+// Test takes a 'long' time
+/*test*/ bool testEvalOctagon(){
+	try evald(parse(#start[Program], |project://Ogol/input/octagon.ogol|).top);
+	  catch: return false;
+	return true;
+}
+
+public void testJs(){
+	evalAndCompileCanvas(|project://Ogol/input/test.ogol|);
+}
+
+test bool testEvalTest(){
+	try evald(parse(#start[Program], |project://Ogol/input/test.ogol|).top);
+	  catch: return false;
+	return true;
 }
 
 public void treesJs(){
-	compileCanvas(evald(parse(#start[Program], |project://Ogol/input/trees.ogol|).top), |project://Ogol/input/ogol.js|);
+	evalAndCompileCanvas(|project://Ogol/input/trees.ogol|);
+}
+
+test bool testEvalTrees(){
+	try evald(parse(#start[Program], |project://Ogol/input/trees.ogol|).top);
+	  catch: return false;
+	return true;
 }
 
