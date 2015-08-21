@@ -7,3 +7,8 @@ end
 to squareDash :n :len
    repeat 4 [ dash :n :len; rt 90; ]
 end
+
+pd;
+dash 10 20;
+home;
+squareDash 10 20;
